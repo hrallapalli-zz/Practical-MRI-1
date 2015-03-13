@@ -63,10 +63,14 @@ static sSLICE_POS       asSLC[1];                       // MiniFLASH is a single
                                                         // some utility functions require the use of
                                                         // an array as most sequences are multislice
 
-static sRF_PULSE_SINC   sSRF01      ("sSRF01");         // RF transmit waveform envelope
+static sRF_PULSE_SINC   sSRF01      ("sSRF01");         // 90 degree RF transmit waveform envelope
 static sFREQ_PHASE      sSRF01zSet  ("sSRF01zSet");     // Set Frequency and phase for RF pulse
 static sFREQ_PHASE      sSRF01zNeg  ("sSRF01zNeg");     // Reset synthesizer back to base
  
+static sRF_PULSE_SINC   sSRF02      ("sSRF02");         // 180 degree RF transmit waveform envelope
+static sFREQ_PHASE      sSRF02zSet  ("sSRF02zSet");     // Set Frequency and phase for RF pulse
+static sFREQ_PHASE      sSRF02zNeg  ("sSRF02zNeg");     // Reset synthesizer back to base
+
 static sREADOUT         sADC01      ("sADC01");         // Signal detection event
 static sFREQ_PHASE      sADC01zSet  ("sADC01zSet");     // Set Frequency and phase for ADC
 static sFREQ_PHASE      sADC01zNeg  ("sADC01zNeg");     // Reset synthesizer back to base
@@ -153,19 +157,29 @@ NLS_STATUS fSEQPrep (MrProt *pMrProt, SeqLim *pSeqLim, SeqExpo *pSeqExpo)
   pSeqExpo->setRelevantReadoutsForMeasTime(lLinesToMeasure / llinesPerSec);
 
 
-// CONFIGURE RF PULSE PROPERTIES AND PREPARE:
+// CONFIGURE 90 degree RF PULSE PROPERTIES AND PREPARE:
   sSRF01.setTypeExcitation       ();                               // Resets all moments to 0 in Unit test
   sSRF01.setDuration             (2560);                           // Most times are in microseconds
-  sSRF01.setFlipAngle            (pMrProt->flipAngle());           // Sets flip angle based on UI (in degrees)
+  sSRF01.setFlipAngle            (90);           // Sets flip angle based on UI (in degrees)
   sSRF01.setInitialPhase         (0);                              // Sets phase of pulse in rotating frame to 0 (+x) 
   sSRF01.setThickness            (pMrProt->sliceSeries().aFront().thickness());  // Sets thickness based on UI (in mm)
   sSRF01.setSamples              (128);                            // Number of complex points in waveform
   sSRF01.setBandwidthTimeProduct (2.70);                        // Only sRF_PULSE_SINC objects have the BW*t attribute 
+  
+  // CONFIGURE  180 degree RF PULSE PROPERTIES AND PREPARE:
+  sSRF02.setTypeExcitation       ();                               // Resets all moments to 0 in Unit test
+  sSRF02.setDuration             (2560);                           // Most times are in microseconds
+  sSRF02.setFlipAngle            (180);           // Sets flip angle based on UI (in degrees)
+  sSRF02.setInitialPhase         (0);                              // Sets phase of pulse in rotating frame to 0 (+x) 
+  sSRF02.setThickness            (pMrProt->sliceSeries().aFront().thickness());  // Sets thickness based on UI (in mm)
+  sSRF02.setSamples              (128);                            // Number of complex points in waveform
+  sSRF02.setBandwidthTimeProduct (2.70);                        // Only sRF_PULSE_SINC objects have the BW*t attribute 
 
 //  The following is a common error-checking code structure for pulse sequences. 
 //  The prepare (prep) method returns a boolean indicating success or failure. 
 //  If the returned boolean indicates failure, then exit fSEQPrep and return the NLS error code.
   if(! sSRF01.prepSinc(pMrProt,pSeqExpo)) return (sSRF01.getNLSStatus());
+  if(! sSRF02.prepSinc(pMrProt,pSeqExpo)) return (sSRF02.getNLSStatus());
 
 
 //  PREPARE ADC:
@@ -224,6 +238,7 @@ NLS_STATUS fSEQPrep (MrProt *pMrProt, SeqLim *pSeqLim, SeqExpo *pSeqExpo)
 //  PREPARE AND CHECK THE SLICE SELECTION GRADIENT:
 //  First, set the gradient amplitude, retrieving it from the RF pulse object.
   sGSliSel.setAmplitude(sSRF01.getGSAmplitude());
+  sGSliSel.setAmplitude(sSRF02.getGSAmplitude());
 
 //  Second, set the ramp-up and ramp-down times. The variable dMinRiseTime is the inverse of the slew rate [us*m/mT],
 //  the .getAmplitude() method delivers the amplitude in mT/m. The coil lead time is the minimum time needed between
